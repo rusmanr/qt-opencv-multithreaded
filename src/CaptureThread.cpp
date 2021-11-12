@@ -6,7 +6,7 @@
 /*                                                                      */
 /* Nick D'Ademo <nickdademo@gmail.com>                                  */
 /*                                                                      */
-/* Copyright (c) 2012-2015 Nick D'Ademo                                 */
+/* Copyright (c) 2012-2013 Nick D'Ademo                                 */
 /*                                                                      */
 /* Permission is hereby granted, free of charge, to any person          */
 /* obtaining a copy of this software and associated documentation       */
@@ -32,25 +32,20 @@
 
 #include "CaptureThread.h"
 
-#include "SharedImageBuffer.h"
-#include "Config.h"
-
-#include <QDebug>
-
-CaptureThread::CaptureThread(SharedImageBuffer *sharedImageBuffer, int deviceNumber, bool dropFrameIfBufferFull, int width, int height) :
-    QThread(),
-    m_sharedImageBuffer(sharedImageBuffer)
+CaptureThread::CaptureThread(SharedImageBuffer *sharedImageBuffer, int deviceNumber, bool dropFrameIfBufferFull, int width, int height) : QThread(), sharedImageBuffer(sharedImageBuffer)
 {
-    m_dropFrameIfBufferFull = dropFrameIfBufferFull;
-    m_deviceNumber = deviceNumber;
-    m_width = width;
-    m_height = height;
-    m_doStop = false;
-    m_sampleNumber = 0;
-    m_fpsSum = 0;
-    m_fps.clear();
-    m_statsData.averageFPS = 0;
-    m_statsData.nFramesProcessed = 0;
+    // Save passed parameters
+    this->dropFrameIfBufferFull=dropFrameIfBufferFull;
+    this->deviceNumber=deviceNumber;
+    this->width = width;
+    this->height = height;
+    // Initialize variables(s)
+    doStop=false;
+    sampleNumber=0;
+    fpsSum=0;
+    fps.clear();
+    statsData.averageFPS=0;
+    statsData.nFramesProcessed=0;
 }
 
 void CaptureThread::run()
@@ -60,59 +55,52 @@ void CaptureThread::run()
         ////////////////////////////////
         // Stop thread if doStop=TRUE //
         ////////////////////////////////
-        m_doStopMutex.lock();
-        if (m_doStop)
+        doStopMutex.lock();
+        if(doStop)
         {
-            m_doStop = false;
-            m_doStopMutex.unlock();
+            doStop=false;
+            doStopMutex.unlock();
             break;
         }
-        m_doStopMutex.unlock();
+        doStopMutex.unlock();
         /////////////////////////////////
         /////////////////////////////////
 
         // Save capture time
-        m_captureTime = m_t.elapsed();
+        captureTime=t.elapsed();
         // Start timer (used to calculate capture rate)
-        m_t.start();
+        t.start();
 
         // Synchronize with other streams (if enabled for this stream)
-        m_sharedImageBuffer->sync(m_deviceNumber);
+        sharedImageBuffer->sync(deviceNumber);
 
         // Capture frame (if available)
-        if (!m_cap.grab())
-        {
+        if (!cap.grab())
             continue;
-        }
 
         // Retrieve frame
-        m_cap.retrieve(m_grabbedFrame);
+        cap.retrieve(grabbedFrame);
         // Add frame to buffer
-        m_sharedImageBuffer->getByDeviceNumber(m_deviceNumber)->add(m_grabbedFrame, m_dropFrameIfBufferFull);
+        sharedImageBuffer->getByDeviceNumber(deviceNumber)->add(grabbedFrame, dropFrameIfBufferFull);
 
         // Update statistics
-        updateFPS(m_captureTime);
-        m_statsData.nFramesProcessed++;
+        updateFPS(captureTime);
+        statsData.nFramesProcessed++;
         // Inform GUI of updated statistics
-        emit updateStatisticsInGUI(m_statsData);
+        emit updateStatisticsInGUI(statsData);
     }
-
     qDebug() << "Stopping capture thread...";
 }
 
 bool CaptureThread::connectToCamera()
 {
     // Open camera
-    bool camOpenResult = m_cap.open(m_deviceNumber);
+    bool camOpenResult = cap.open(deviceNumber);
     // Set resolution
-    if (m_width != -1)
-    {
-        m_cap.set(CV_CAP_PROP_FRAME_WIDTH, m_width);
-    }
-    if (m_height != -1)
-    {
-        m_cap.set(CV_CAP_PROP_FRAME_HEIGHT, m_height);
-    }
+    if(width != -1)
+        cap.set(CAP_PROP_FRAME_WIDTH, width);
+    if(height != -1)
+        cap.set(CAP_PROP_FRAME_HEIGHT, height);
     // Return result
     return camOpenResult;
 }
@@ -120,67 +108,61 @@ bool CaptureThread::connectToCamera()
 bool CaptureThread::disconnectCamera()
 {
     // Camera is connected
-    if (m_cap.isOpened())
+    if(cap.isOpened())
     {
         // Disconnect camera
-        m_cap.release();
+        cap.release();
         return true;
     }
     // Camera is NOT connected
     else
-    {
         return false;
-    }
 }
 
 void CaptureThread::updateFPS(int timeElapsed)
 {
     // Add instantaneous FPS value to queue
-    if(timeElapsed > 0)
+    if(timeElapsed>0)
     {
-        m_fps.enqueue((int)1000 / timeElapsed);
+        fps.enqueue((int)1000/timeElapsed);
         // Increment sample number
-        m_sampleNumber++;
+        sampleNumber++;
     }
     // Maximum size of queue is DEFAULT_CAPTURE_FPS_STAT_QUEUE_LENGTH
-    if (m_fps.size()>CAPTURE_FPS_STAT_QUEUE_LENGTH)
-    {
-        m_fps.dequeue();
-    }
+    if(fps.size()>CAPTURE_FPS_STAT_QUEUE_LENGTH)
+        fps.dequeue();
     // Update FPS value every DEFAULT_CAPTURE_FPS_STAT_QUEUE_LENGTH samples
-    if ((m_fps.size() == CAPTURE_FPS_STAT_QUEUE_LENGTH) && (m_sampleNumber == CAPTURE_FPS_STAT_QUEUE_LENGTH))
+    if((fps.size()==CAPTURE_FPS_STAT_QUEUE_LENGTH)&&(sampleNumber==CAPTURE_FPS_STAT_QUEUE_LENGTH))
     {
         // Empty queue and store sum
-        while (!m_fps.empty())
-        {
-            m_fpsSum += m_fps.dequeue();
-        }
+        while(!fps.empty())
+            fpsSum+=fps.dequeue();
         // Calculate average FPS
-        m_statsData.averageFPS = m_fpsSum / CAPTURE_FPS_STAT_QUEUE_LENGTH;
+        statsData.averageFPS=fpsSum/CAPTURE_FPS_STAT_QUEUE_LENGTH;
         // Reset sum
-        m_fpsSum = 0;
+        fpsSum=0;
         // Reset sample number
-        m_sampleNumber = 0;
+        sampleNumber=0;
     }
 }
 
 void CaptureThread::stop()
 {
-    QMutexLocker locker(&m_doStopMutex);
-    m_doStop = true;
+    QMutexLocker locker(&doStopMutex);
+    doStop=true;
 }
 
 bool CaptureThread::isCameraConnected()
 {
-    return m_cap.isOpened();
+    return cap.isOpened();
 }
 
 int CaptureThread::getInputSourceWidth()
 {
-    return m_cap.get(CV_CAP_PROP_FRAME_WIDTH);
+    return cap.get(CAP_PROP_FRAME_WIDTH);
 }
 
 int CaptureThread::getInputSourceHeight()
 {
-    return m_cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+    return cap.get(CAP_PROP_FRAME_HEIGHT);
 }

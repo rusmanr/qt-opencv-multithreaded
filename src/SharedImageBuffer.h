@@ -6,7 +6,7 @@
 /*                                                                      */
 /* Nick D'Ademo <nickdademo@gmail.com>                                  */
 /*                                                                      */
-/* Copyright (c) 2012-2015 Nick D'Ademo                                 */
+/* Copyright (c) 2012-2013 Nick D'Ademo                                 */
 /*                                                                      */
 /* Permission is hereby granted, free of charge, to any person          */
 /* obtaining a copy of this software and associated documentation       */
@@ -33,21 +33,25 @@
 #ifndef SHAREDIMAGEBUFFER_H
 #define SHAREDIMAGEBUFFER_H
 
+// Qt
 #include <QHash>
 #include <QSet>
 #include <QWaitCondition>
 #include <QMutex>
-
+// OpenCV
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+// Local
+#include <Buffer.h>
 
-#include "Buffer.h"
+using namespace cv;
 
 class SharedImageBuffer
 {
     public:
         SharedImageBuffer();
-        void add(int deviceNumber, Buffer<cv::Mat> *imageBuffer, bool sync = false);
-        Buffer<cv::Mat>* getByDeviceNumber(int deviceNumber);
+        void add(int deviceNumber, Buffer<Mat> *imageBuffer, bool sync=false);
+        Buffer<Mat>* getByDeviceNumber(int deviceNumber);
         void removeByDeviceNumber(int deviceNumber);
         void sync(int deviceNumber);
         void wakeAll();
@@ -57,12 +61,12 @@ class SharedImageBuffer
         bool containsImageBufferForDeviceNumber(int deviceNumber);
 
     private:
-        QHash<int, Buffer<cv::Mat>*> m_imageBufferMap;
-        QSet<int> m_syncSet;
-        QWaitCondition m_wc;
-        QMutex m_mutex;
-        int m_nArrived;
-        bool m_doSync;
+        QHash<int, Buffer<Mat>*> imageBufferMap;
+        QSet<int> syncSet;
+        QWaitCondition wc;
+        QMutex mutex;
+        int nArrived;
+        bool doSync;
 };
 
 #endif // SHAREDIMAGEBUFFER_H

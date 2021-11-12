@@ -6,7 +6,7 @@
 /*                                                                      */
 /* Nick D'Ademo <nickdademo@gmail.com>                                  */
 /*                                                                      */
-/* Copyright (c) 2012-2015 Nick D'Ademo                                 */
+/* Copyright (c) 2012-2013 Nick D'Ademo                                 */
 /*                                                                      */
 /* Permission is hereby granted, free of charge, to any person          */
 /* obtaining a copy of this software and associated documentation       */
@@ -33,15 +33,17 @@
 #ifndef IMAGEPROCESSINGSETTINGSDIALOG_H
 #define IMAGEPROCESSINGSETTINGSDIALOG_H
 
+// Qt
 #include <QDialog>
-
+#include <QAbstractButton>
+#include <QRegExpValidator>
+// Local
 #include "Structures.h"
+#include "Config.h"
 
 namespace Ui {
 class ImageProcessingSettingsDialog;
 }
-
-class QAbstractButton;
 
 class ImageProcessingSettingsDialog : public QDialog
 {
@@ -54,7 +56,7 @@ class ImageProcessingSettingsDialog : public QDialog
 
     private:
         Ui::ImageProcessingSettingsDialog *ui;
-        ImageProcessingSettings m_imageProcessingSettings;
+        ImageProcessingSettings imageProcessingSettings;
 
     public slots:
         void resetAllDialogToDefaults();
@@ -67,10 +69,10 @@ class ImageProcessingSettingsDialog : public QDialog
         void resetFlipDialogToDefaults();
         void resetCannyDialogToDefaults();
         void validateDialog();
-        void smoothTypeChange(QAbstractButton *button);
+        void smoothTypeChange(QAbstractButton *);
 
     signals:
-        void newImageProcessingSettings(ImageProcessingSettings settings);
+        void newImageProcessingSettings(struct ImageProcessingSettings p_settings);
 };
 
 #endif // IMAGEPROCESSINGSETTINGSDIALOG_H

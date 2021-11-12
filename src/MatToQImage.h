@@ -6,7 +6,7 @@
 /*                                                                      */
 /* Nick D'Ademo <nickdademo@gmail.com>                                  */
 /*                                                                      */
-/* Copyright (c) 2012-2015 Nick D'Ademo                                 */
+/* Copyright (c) 2012-2013 Nick D'Ademo                                 */
 /*                                                                      */
 /* Permission is hereby granted, free of charge, to any person          */
 /* obtaining a copy of this software and associated documentation       */
@@ -33,10 +33,14 @@
 #ifndef MATTOQIMAGE_H
 #define MATTOQIMAGE_H
 
-#include <QImage>
-
+// Qt
+#include <QtGui/QImage>
+// OpenCV
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
 
-QImage MatToQImage(const cv::Mat& mat);
+using namespace cv;
+
+QImage MatToQImage(const Mat&);
 
 #endif // MATTOQIMAGE_H
