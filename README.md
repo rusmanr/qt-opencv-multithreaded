@@ -1,5 +1,10 @@
 qt-opencv-multithreaded
 =======================
+
+11/11/2021:
+update the code for opencv 4.2
+tested using Qt5.15.2 on Ubuntu20.04
+
 Official project page: http://code.google.com/p/qt-opencv-multithreaded/
 
 ## Windows
